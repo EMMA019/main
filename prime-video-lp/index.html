@@ -1,0 +1,593 @@
+<run_command><file>`<run_command>`<file>`
+
+
+
+<file path="prime-video-lp/index.html">
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Three.jsによる3D演出を備えたPrime Video風の非公式・学習用LPデモ（単一HTMLファイル）" />
+<title>PrimeStream | 非公式 Prime Video風 デモLP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root {
+  --navy-900: #050d1f;
+  --navy-800: #081226;
+  --navy-700: #0d1f3c;
+  --blue-500: #38bdf8;
+  --blue-400: #7dd3fc;
+  --blue-300: #bae6fd;
+  --cyan-400: #22d3ee;
+  --white: #ffffff;
+  --muted: #9db4d0;
+  --muted-deep: #6f87a6;
+  --radius: 16px;
+  --shadow-lg: 0 24px 48px rgba(2, 6, 23, 0.55);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: "Inter", "Noto Sans JP", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-800) 45%, #0e2240 100%);
+  color: var(--white);
+  overflow-x: hidden;
+  line-height: 1.7;
+}
+a { color: inherit; text-decoration: none; }
+ul { list-style: none; }
+.container { width: min(1120px, 100% - 40px); margin-inline: auto; }
+
+#webgl-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+#webgl-canvas canvas { display: block; }
+#webgl-fallback {
+  position: absolute; inset: auto auto 40px 50%; transform: translateX(-50%);
+  background: rgba(5, 13, 31, 0.85); border: 1px solid rgba(125, 211, 252, 0.3);
+  color: var(--blue-300); padding: 14px 28px; border-radius: 999px;
+  font-size: 14px; text-align: center; display: none; white-space: nowrap;
+}
+
+/* ===== Header ===== */
+.site-header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+  background: rgba(5, 13, 31, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.14);
+}
+.nav { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: 0.04em; font-size: 17px; }
+.brand-mark {
+  display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--cyan-400), var(--blue-500));
+  color: #04102a; font-size: 12px; padding-left: 2px;
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.5);
+}
+.nav-links { display: flex; gap: 26px; font-size: 14px; font-weight: 500; color: var(--muted); }
+.nav-links a { transition: color 0.2s ease; }
+.nav-links a:hover { color: var(--white); }
+
+main { position: relative; z-index: 1; }
+
+/* ===== Hero ===== */
+.hero {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 120px 20px 80px;
+}
+.hero-inner { max-width: 800px; }
+.eyebrow {
+  display: inline-block; padding: 8px 18px; border-radius: 999px;
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  background: rgba(56, 189, 248, 0.1);
+  color: var(--blue-400); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.16em; margin-bottom: 24px;
+}
+.hero h1 { font-size: clamp(2.4rem, 6vw, 4.4rem); font-weight: 900; line-height: 1.2; letter-spacing: 0.02em; margin-bottom: 18px; }
+.gradient-text {
+  background: linear-gradient(120deg, #22d3ee 0%, #38bdf8 40%, #a78bfa 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.hero-sub { color: var(--muted); font-size: clamp(1rem, 2vw, 1.15rem); max-width: 560px; margin: 0 auto 36px; }
+.hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 15px 30px; border-radius: 999px; font-weight: 700; font-size: 15px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+}
+.btn-primary { background: linear-gradient(135deg, var(--cyan-400), var(--blue-500)); color: #04102a; box-shadow: 0 10px 30px rgba(56, 189, 248, 0.35); }
+.btn-primary:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(56, 189, 248, 0.5); }
+.btn-ghost { border: 1px solid rgba(125, 211, 252, 0.4); color: var(--blue-300); background: rgba(125, 211, 252, 0.06); }
+.btn-ghost:hover { transform: translateY(-3px); background: rgba(125, 211, 252, 0.14); border-color: rgba(125, 211, 252, 0.7); }
+.hero-note { margin-top: 28px; font-size: 12px; color: rgba(157, 180, 208, 0.8); }
+
+/* ===== Sections ===== */
+.section { padding: 100px 0; }
+.section-eyebrow { text-align: center; color: var(--blue-400); font-size: 13px; letter-spacing: 0.2em; font-weight: 600; margin-bottom: 8px; }
+.section-title { text-align: center; font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 900; margin-bottom: 16px; }
+.section-lead { text-align: center; color: var(--muted); max-width: 560px; margin: 0 auto 48px; }
+
+/* ===== Benefits ===== */
+.benefit-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.benefit-card {
+  background: linear-gradient(180deg, rgba(13, 31, 60, 0.85), rgba(8, 18, 38, 0.9));
+  border: 1px solid rgba(56, 189, 248, 0.16);
+  border-radius: var(--radius);
+  padding: 30px 24px;
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.benefit-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 18px 40px rgba(2, 6, 23, 0.6), 0 0 24px rgba(56, 189, 248, 0.12);
+}
+.benefit-icon { font-size: 30px; margin-bottom: 14px; }
+.benefit-card h3 { font-size: 17px; margin-bottom: 8px; }
+.benefit-card p { font-size: 13.5px; color: var(--muted); }
+
+/* ===== Show Cards ===== */
+.show-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.show-card {
+  background: rgba(13, 31, 60, 0.7);
+  border: 1px solid rgba(56, 189, 248, 0.14);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+}
+.show-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(125, 211, 252, 0.45);
+  box-shadow: var(--shadow-lg), 0 0 28px rgba(56, 189, 248, 0.14);
+}
+.thumb {
+  position: relative; aspect-ratio: 16 / 9;
+  display: grid; place-items: center; font-size: 46px;
+  background: var(--g, linear-gradient(135deg, #0ea5e9, #1e3a8a));
+}
+.thumb::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 55%, rgba(5, 13, 31, 0.7));
+}
+.thumb-emoji { position: relative; z-index: 1; filter: drop-shadow(0 6px 16px rgba(2, 6, 23, 0.6)); }
+.duration, .badge { position: absolute; z-index: 2; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+.duration { bottom: 10px; left: 10px; background: rgba(5, 13, 31, 0.75); color: var(--blue-400); border: 1px solid rgba(125, 211, 252, 0.25); }
+.badge { top: 10px; right: 10px; background: linear-gradient(135deg, var(--cyan-400), var(--blue-500)); color: #04102a; }
+.card-body { padding: 20px 22px 24px; }
+.card-body h3 { font-size: 18px; margin-bottom: 2px; }
+.genre { font-size: 12px; color: var(--blue-400); letter-spacing: 0.08em; margin-bottom: 10px; }
+.desc { font-size: 14px; color: var(--muted); margin-bottom: 14px; }
+.card-link { font-size: 13.5px; font-weight: 700; color: var(--blue-400); transition: color 0.2s ease; }
+.card-link:hover { color: var(--cyan-400); }
+
+/* ===== CTA ===== */
+.cta-panel {
+  position: relative; text-align: center; padding: 70px 40px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(13, 31, 60, 0.9), rgba(8, 18, 38, 0.95));
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  overflow: hidden;
+}
+.cta-panel::before {
+  content: ""; position: absolute; top: -60%; left: 50%; transform: translateX(-50%);
+  width: 600px; height: 400px; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(56, 189, 248, 0.28), transparent);
+}
+.cta-panel > * { position: relative; z-index: 1; }
+.cta-panel h2 { font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 900; margin-bottom: 14px; }
+.cta-panel p { color: var(--muted); margin-bottom: 30px; }
+.btn-lg { padding: 18px 42px; font-size: 16px; }
+.cta-note { font-size: 12px; color: rgba(157, 180, 208, 0.75); margin-top: 20px; }
+
+/* ===== Footer ===== */
+.site-footer {
+  position: relative; z-index: 1;
+  border-top: 1px solid rgba(56, 189, 248, 0.14);
+  background: rgba(4, 10, 22, 0.8);
+  padding: 48px 20px 40px; text-align: center;
+}
+.footer-brand { font-weight: 800; letter-spacing: 0.08em; margin-bottom: 14px; }
+.footer-links { display: flex; justify-content: center; gap: 24px; font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+.footer-links a { transition: color 0.2s ease; }
+.footer-links a:hover { color: var(--white); }
+.trademark { font-size: 12px; color: #6f87a6; max-width: 720px; margin: 0 auto 12px; line-height: 1.8; }
+.copyright { font-size: 12px; color: #58708d; }
+
+/* ===== Reveal ===== */
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+.reveal.is-visible { opacity: 1; transform: none; }
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+  .benefit-grid { grid-template-columns: repeat(2, 1fr); }
+  .show-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .benefit-grid, .show-grid { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+  .section { padding: 72px 0; }
+  .hero { padding-top: 100px; }
+  .hero-actions { flex-direction: column; }
+  .btn { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .benefit-card, .show-card, .btn { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<div id="webgl-canvas" aria-hidden="true">
+  <div id="webgl-fallback" role="note">3Dを読み込めませんでした</div>
+</div>
+
+<header class="site-header">
+  <div class="container nav">
+    <a class="brand" href="#">
+      <span class="brand-mark">▶</span>
+      <span>PrimeStream</span>
+    </a>
+    <nav class="nav-links" aria-label="メインナビゲーション">
+      <a href="#benefits">特典</a>
+      <a href="#originals">作品</a>
+      <a href="#cta">はじめる</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-inner">
+      <span class="eyebrow">STREAMING EXPERIENCE</span>
+      <h1>映画も、ドラマも。<br><span class="gradient-text">好きなだけ。</span></h1>
+      <p class="hero-sub">PrimeStream は、話題の映画から隠れた名作ドラマまでを楽しめるストリーミング体験のコンセプトデモです。</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#cta">30日間の無料体験</a>
+        <a class="btn btn-ghost" href="#originals">作品を見る</a>
+      </div>
+      <p class="hero-note">※本ページは非公式の学習用デモです。実際のサービス・料金・無料体験とは関係ありません。</p>
+    </div>
+  </section>
+
+  <!-- Benefits -->
+  <section id="benefits" class="section">
+    <div class="container">
+      <p class="section-eyebrow reveal">BENEFITS</p>
+      <h2 class="section-title reveal">PrimeStream なら</h2>
+      <p class="section-lead reveal">あなたの「観たい」を、もっと自由に。4つの特典（デモ上の表現です）。</p>
+      <div class="benefit-grid">
+        <article class="benefit-card reveal">
+          <div class="benefit-icon">🎬</div>
+          <h3>作品が見放題</h3>
+          <p>映画・ドラマ・アニメなど対象作品を、追加料金なしで楽しめます。</p>
+        </article>
+        <article class="benefit-card reveal">
+          <div class="benefit-icon">📥</div>
+          <h3>オフライン再生</h3>
+          <p>お出かけ前のダウンロードで、通信環境のない場所でも視聴できます。</p>
+        </article>
+        <article class="benefit-card reveal">
+          <div class="benefit-icon">📺</div>
+          <h3>4K UHD & HDR</h3>
+          <p>対応作品は高画質・高音質で、より深い映像体験をお届けします。</p>
+        </article>
+        <article class="benefit-card reveal">
+          <div class="benefit-icon">⏭️</div>
+          <h3>シリーズ一気見</h3>
+          <p>次のエピソードを自動再生。止まらない物語に没入できます。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Originals -->
+  <section id="originals" class="section">
+    <div class="container">
+      <p class="section-eyebrow reveal">PRIMESTREAM ORIGINALS</p>
+      <h2 class="section-title reveal">人気の作品</h2>
+      <p class="section-lead reveal">PrimeStream オリジナルをはじめ、話題の作品が勢ぞろい（すべて架空のタイトルです）。</p>
+      <div class="show-grid">
+        <article class="show-card reveal">
+          <div class="thumb" style="--g: linear-gradient(135deg, #0ea5e9, #1e3a8a);">
+            <span class="thumb-emoji">🚂</span>
+            <span class="duration">24分×10</span>
+            <span class="badge">見放題</span>
+          </div>
+          <div class="card-body">
+            <h3>銀河特急ノクターン</h3>
+            <p class="genre">SF・ドラマ</p>
+            <p class="desc">深夜0時に発つ銀河特急。記憶を失った新人車掌が、宇宙の果てを目指す。</p>
+            <a class="card-link" href="#">詳細を見る →</a>
+          </div>
+        </article>
+
+        <article class="show-card reveal">
+          <div class="thumb" style="--g: linear-gradient(135deg, #6366f1, #111827);">
+            <span class="thumb-emoji">🌆</span>
+            <span class="duration">45分×8</span>
+            <span class="badge">見放題</span>
+          </div>
+          <div class="card-body">
+            <h3>東京サイレント</h3>
+            <p class="genre">ミステリー</p>
+            <p class="desc">声を失った刑事が、音のない事件現場に残された“沈黙”を手がかりに真実へ迫る。</p>
+            <a class="card-link" href="#">詳細を見る →</a>
+          </div>
+        </article>
+
+        <article class="show-card reveal">
+          <div class="thumb" style="--g: linear-gradient(135deg, #f59e0b, #7c2d12);">
+            <span class="thumb-emoji">🕵️</span>
+            <span class="duration">40分×6</span>
+            <span class="badge">独占配信</span>
+          </div>
+          <div class="card-body">
+            <h3>真夜中のベルリン</h3>
+            <p class="genre">サスペンス</p>
+            <p class="desc">壁に囲まれた都市で出会った二人の工作員。互いの正体を隠したまま、任務は始まる。</p>
+            <a class="card-link" href="#">詳細を見る →</a>
+          </div>
+        </article>
+
+        <article class="show-card reveal">
+          <div class="thumb" style="--g: linear-gradient(135deg, #06b6d4, #0c4a6e);">
+            <span class="thumb-emoji">⛵</span>
+            <span class="duration">30分×12</span>
+            <span class="badge">見放題</span>
+          </div>
+          <div class="card-body">
+            <h3>蒼の航路</h3>
+            <p class="genre">アドベンチャー</p>
+            <p class="desc">壊れた羅針盤を頼りに、少女と老船長が伝説の海域を目指す冒険活劇。</p>
+            <a class="card-link" href="#">詳細を見る →</a>
+          </div>
+        </article>
+
+        <article class="show-card reveal">
+          <div class="thumb" style="--g: linear-gradient(135deg, #a855f7, #312e81);">
+            <span class="thumb-emoji">⚡</span>
+            <span class="duration">35分×9</span>
+            <span class="badge">独占配信</span>
+          </div>
+          <div class="card-body">
+            <h3>ネオン・パラドックス</h3>
+            <p class="genre">SF・アクション</p>
+            <p class="desc">仮想都市ネオサイタマで、記憶を売るエージェントが“本当の自分”を取り戻す。</p>
+            <a class="card-link" href="#">詳細を見る →</a>
+          </div>
+        </article>
+
+        <article class="show-card reveal">
+          <div class="thumb" style="--g: linear-gradient(135deg, #e11d48, #4c0519);">
+            <span class="thumb-emoji">🌸</span>
+            <span class="duration">50分×7</span>
+            <span class="badge">見放題</span>
+          </div>
+          <div class="card-body">
+            <h3>花嵐の姫君</h3>
+            <p class="genre">時代劇</p>
+            <p class="desc">戦乱の世を駆け抜けた一人の姫。剣を捨てた彼女が、再び旗を掲げるとき。</p>
+            <a class="card-link" href="#">詳細を見る →</a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section id="cta" class="section">
+    <div class="container">
+      <div class="cta-panel reveal">
+        <h2>いますぐ、映画を。</h2>
+        <p>PrimeStream に登録して、話題の作品を楽しみましょう。<br>30日間の無料体験はこちら（デモの表示です）。</p>
+        <a class="btn btn-primary btn-lg" href="#">30日間の無料体験をはじめる</a>
+        <p class="cta-note">※本ページは学習用デモのため、実際の登録・請求は発生しません。</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p class="footer-brand">PrimeStream</p>
+  <ul class="footer-links">
+    <li><a href="#">利用規約</a></li>
+    <li><a href="#">プライバシー</a></li>
+    <li><a href="#">ヘルプ</a></li>
+  </ul>
+  <p class="trademark">本ページは非公式の学習用デモであり、Amazon Prime VideoおよびPrime VideoはAmazon.com, Inc.の商標です。</p>
+  <p class="copyright">© 2026 PrimeStream Demo. All rights reserved.</p>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var container = document.getElementById("webgl-canvas");
+  var fallback = document.getElementById("webgl-fallback");
+
+  function showFallback() {
+    if (fallback) fallback.style.display = "block";
+  }
+
+  // CDN読み込み失敗時またはWebGL非対応時のフォールバック
+  if (!window.THREE) {
+    showFallback();
+    return;
+  }
+
+  var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  try {
+    // ===== シーン =====
+    var scene = new THREE.Scene();
+
+    var camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 7);
+
+    var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    // ===== ライティング =====
+    var ambient = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambient);
+
+    var directional = new THREE.DirectionalLight(0xffffff, 0.8);
+    directional.position.set(5, 5, 5);
+    scene.add(directional);
+
+    var point1 = new THREE.PointLight(0x22d3ee, 1.4, 20);
+    point1.position.set(4, 3, 4);
+    scene.add(point1);
+
+    var point2 = new THREE.PointLight(0x818cf8, 0.9, 20);
+    point2.position.set(-4, -2, 3);
+    scene.add(point2);
+
+    // ===== グラデーションのトーラスノット =====
+    var knotGeo = new THREE.TorusKnotGeometry(1.4, 0.4, 180, 28);
+    var posAttr = knotGeo.attributes.position;
+
+    var colorArray = new Float32Array(posAttr.count * 3);
+    var c1 = new THREE.Color(0x22d3ee);
+    var c2 = new THREE.Color(0x38bdf8);
+    var c3 = new THREE.Color(0x8b5cf6);
+    var tmpColor = new THREE.Color();
+
+    for (var i = 0; i < posAttr.count; i++) {
+      var nx = posAttr.getX(i) / 1.4;
+      var t = (nx + 1) / 2;
+      if (t < 0.5) {
+        tmpColor.copy(c1).lerp(c2, t * 2);
+      } else {
+        tmpColor.copy(c2).lerp(c3, (t - 0.5) * 2);
+      }
+      colorArray[i * 3] = tmpColor.r;
+      colorArray[i * 3 + 1] = tmpColor.g;
+      colorArray[i * 3 + 2] = tmpColor.b;
+    }
+    knotGeo.setAttribute("color", new THREE.BufferAttribute(colorArray, 3));
+
+    var knotMat = new THREE.MeshStandardMaterial({
+      roughness: 0.25,
+      metalness: 0.7,
+      vertexColors: true,
+      emissiveIntensity: 0.15
+    });
+
+    var knot = new THREE.Mesh(knotGeo, knotMat);
+    scene.add(knot);
+
+    // ===== パーティクル =====
+    var particleCount = 900;
+    var pGeo = new THREE.BufferGeometry();
+    var pPositions = new Float32Array(particleCount * 3);
+
+    for (var j = 0; j < particleCount * 3; j += 3) {
+      pPositions[j] = (Math.random() - 0.5) * 20;
+      pPositions[j + 1] = (Math.random() - 0.5) * 12;
+      pPositions[j + 2] = (Math.random() - 0.5) * 12 - 2;
+    }
+    pGeo.setAttribute("position", new THREE.BufferAttribute(pPositions, 3));
+
+    var pMat = new THREE.PointsMaterial({
+      color: 0x7dd3fc,
+      size: 0.035,
+      transparent: true,
+      opacity: 0.7,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    var particles = new THREE.Points(pGeo, pMat);
+    scene.add(particles);
+
+    // ===== インタラクション =====
+    var mouseX = 0;
+    var mouseY = 0;
+    var scrollY = 0;
+
+    document.addEventListener("mousemove", function (e) {
+      mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+      mouseY = (e.clientY / window.innerHeight) * 2 - 1;
+    });
+
+    window.addEventListener("scroll", function () {
+      scrollY = window.scrollY;
+    });
+
+    // ===== アニメーションループ =====
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // マウス追従（イージング付き）
+      var targetRotX = mouseY * 0.3;
+      var targetRotY = mouseX * 0.5;
+
+      knot.rotation.x += (targetRotX - knot.rotation.x) * 0.05;
+      knot.rotation.y += (targetRotY - knot.rotation.y) * 0.05;
+
+      // 常時ゆっくり回転
+      knot.rotation.x += 0.003;
+      knot.rotation.y += 0.005;
+
+      // スクロール連動（沈む＋縮小）
+      var scrollRatio = Math.min(scrollY / window.innerHeight, 1);
+      knot.position.y = -scrollRatio * 0.8;
+      var scale = 1 - scrollRatio * 0.3;
+      knot.scale.setScalar(scale);
+
+      // パーティクル微回転
+      particles.rotation.y += 0.0008;
+
+      renderer.render(scene, camera);
+    }
+
+    if (reducedMotion) {
+      // 動きを抑制：初期状態で1度だけ描画
+      renderer.render(scene, camera);
+    } else {
+      animate();
+    }
+
+    // ===== リサイズ対応 =====
+    window.addEventListener("resize", function () {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  } catch (err) {
+    showFallback();
+  }
+
+  // ===== スクロール連動フェードイン =====
+  var revealEls = document.querySelectorAll(".reveal");
+  if ("IntersectionObserver" in window) {
+    var observer = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12 }
+    );
+    revealEls.forEach(function (el) { observer.observe(el); });
+  } else {
+    revealEls.forEach(function (el) { el.classList.add("is-visible"); });
+  }
+})();
+</script>
+</body>
+</html>
